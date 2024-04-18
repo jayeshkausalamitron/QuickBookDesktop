@@ -1,0 +1,30 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickBooks Report Access</title>
+</head>
+<body>
+  <button id="fetchReportsBtn">Fetch Reports</button>
+  <ul id="reportsList"></ul>
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    document.getElementById('fetchReportsBtn').addEventListener('click', () => {
+      ipcRenderer.send('fetchReports', {});
+    });
+
+    ipcRenderer.on('reports', (event, reports) => {
+      const reportsList = document.getElementById('reportsList');
+      reportsList.innerHTML = '';
+      reports.forEach(report => {
+        const li = document.createElement('li');
+        li.textContent = report.name; // Assuming report object has a 'name' property
+        reportsList.appendChild(li);
+      });
+    });
+  </script>
+</body>
+</html>
