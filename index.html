@@ -12,6 +12,7 @@
   <script>
     const { ipcRenderer } = require('electron');
 
+    
     document.getElementById('fetchReportsBtn').addEventListener('click', () => {
       ipcRenderer.send('fetchReports', {});
     });
