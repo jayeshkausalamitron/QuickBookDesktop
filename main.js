@@ -1,73 +1,77 @@
 // main.js
-const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
-const url = require('url');
-const fs = require('fs');
-const {dialog} = require('electron');
-const xlsx = require('xlsx');
-const { getToken, getReports } = require('./quickbooks');
+const { app, BrowserWindow } = require('electron');
+const express = require('express');
+const bodyParser = require('body-parser');
+const xml2js = require('xml2js');
 
 let mainWindow;
 
+// Set up the Electron application
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
-      nodeIntegration: true
-    }
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
   });
 
-  mainWindow.loadURL(
-    url.format({
-      pathname: path.join(__dirname, 'index.html'),
-      protocol: 'file:',
-      slashes: true
-    })
-  );
+  mainWindow.loadFile('index.html');
 
-  mainWindow.webContents.openDevTools();
-
-  mainWindow.on('closed', function() {
+  mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
-app.on('ready', createWindow);
+app.whenReady().then(createWindow);
 
-app.on('window-all-closed', function() {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+// Set up the Express server within Electron
+const expressApp = express();
+const port = 3000; // The port where the Express server will listen
 
-app.on('activate', function() {
-  if (mainWindow === null) {
-    createWindow();
-  }
-});
+expressApp.use(bodyParser.text({ type: 'text/xml' }));
 
-ipcMain.on('fetchReports', async (event, arg) => {
-  try {
-    const token = await getToken(); // Implement this function to get access token
-    const reports = await getReports(token); // Implement this function to fetch reports
-    mainWindow.webContents.send('reports', reports);
-    const workbook = xlsx.utils.book_new();
-    const worksheet = xlsx.utils.json_to_sheet(data);
+const parser = new xml2js.Parser();
 
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-
-    //Changes this path as needed
-    const defaultPath = app.getPath('desktop');
-    const filePath = dialog.showSaveDialogSync(mainWindow, {
-        defaultPath,
-        filters: [{ name : 'Excek workbook', extensions: ['xlsx']}]
-    });
-
-    if(filePath){
-        xlsx.writeFile(workbook, filePath);
+// Define the endpoint for QuickBooks Web Connector
+expressApp.post('/quickbooks', (req, res) => {
+  parser.parseString(req.body, (err, result) => {
+    if (err) {
+      res.status(500).send('Error parsing XML');
+      return;
     }
-  } catch (error) {
-    console.error('Error fetching reports:', error);
-  }
+
+    // Process the request to handle the Web Connector handshake
+    const qbXML = `
+      <?xml version="1.0" ?>
+      <?qbxml version="13.0" ?>
+      <QBXML>
+        <QBXMLMsgsRq>
+          <HostQueryRq>
+          </HostQueryRq>
+        </QBXMLMsgsRq>
+      </QBXML>
+    `;
+
+    res.send(qbXML);
+});
+
+// Define an endpoint for a handshake request
+expressApp.post('/handshake', (req, res) => {
+  // Handle initial handshake or authentication request
+  const handshakeResponse = `
+    <?xml version="1.0" ?>
+    <?qbxml version="13.0" ?>
+    <QBXML>
+      <QBXMLMsgsRs>
+        <HostQueryRs statusCode="0" statusSeverity="Info" statusMessage="Ready">
+        </HostQueryRs>
+      </QBXML>
+    `;
+  res.send(handshakeResponse);
+});
+
+expressApp.listen(port, () => {
+  console.log(`Express server running on port ${port}`);
 });
