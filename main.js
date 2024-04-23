@@ -1,8 +1,9 @@
-// main.js
+// Import dependencies
 const { app, BrowserWindow } = require('electron');
 const express = require('express');
 const bodyParser = require('body-parser');
 const xml2js = require('xml2js');
+const schedule = require('node-schedule'); // Importing node-schedule
 
 let mainWindow;
 
@@ -72,6 +73,28 @@ expressApp.post('/handshake', (req, res) => {
   res.send(handshakeResponse);
 });
 
+// Schedule a task to pull a report every day at a specific time
+schedule.scheduleJob('0 9 * * *', () => { // This example runs every day at 9 AM
+  console.log("Scheduled task to pull a QuickBooks report.");
+
+  const qbXML = `
+    <?xml version="1.0" ?>
+    <?qbxml version="13.0" ?>
+    <QBXML>
+      <QBXMLMsgsRq>
+        <GeneralSummaryReportQueryRq requestID="1">
+          <GeneralSummaryReportType>BalanceSheet</GeneralSummaryReportType>
+        </GeneralSummaryReportQueryRq>
+      </QBXMLMsgsRq>
+    </QBXML>
+  `;
+
+  // Normally, you'd send this request to QuickBooks
+  console.log("Sending scheduled report request to QuickBooks.");
+});
+
+// Start the Express server within the Electron application
 expressApp.listen(port, () => {
   console.log(`Express server running on port ${port}`);
+});
 });
