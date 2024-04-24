@@ -4,6 +4,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const xml2js = require('xml2js');
 const schedule = require('node-schedule'); // Importing node-schedule
+const mysql = require('mysql2/promise'); // For MySQL connections
 
 let mainWindow;
 
@@ -35,6 +36,27 @@ expressApp.use(bodyParser.text({ type: 'text/xml' }));
 
 const parser = new xml2js.Parser();
 
+// MySQL connection settings
+const dbConfig = {
+  host: 'your-database-host', // e.g., 'localhost' or a specific host
+  user: 'your-database-user',
+  password: 'your-database-password',
+  database: 'your-database-name'
+};
+
+// Function to fetch data from the database
+async function fetchLatestData() {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute('SELECT * FROM your_table_name ORDER BY timestamp DESC LIMIT 1'); // Query to get the latest data
+    await connection.end();
+    return rows[0]; // Return the latest data
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    return null;
+  }
+}
+
 // Define the endpoint for QuickBooks Web Connector
 expressApp.post('/quickbooks', (req, res) => {
   parser.parseString(req.body, (err, result) => {
@@ -52,7 +74,7 @@ expressApp.post('/quickbooks', (req, res) => {
           <HostQueryRq>
           </HostQueryRq>
         </QBXMLMsgsRq>
-      </QBXML>
+      </QBXML
     `;
 
     res.send(qbXML);
@@ -68,33 +90,24 @@ expressApp.post('/handshake', (req, res) => {
       <QBXMLMsgsRs>
         <HostQueryRs statusCode="0" statusSeverity="Info" statusMessage="Ready">
         </HostQueryRs>
-      </QBXML>
+      </QBXML
     `;
   res.send(handshakeResponse);
 });
 
-// Schedule a task to pull a report every day at a specific time
-schedule.scheduleJob('0 9 * * *', () => { // This example runs every day at 9 AM
-  console.log("Scheduled task to pull a QuickBooks report.");
+// Schedule a task to fetch the latest data from the database every day at a specific time
+schedule.scheduleJob('0 8 * * *', async () => { // This example runs every day at 8 AM
+  console.log("Scheduled task to fetch the latest data from the database.");
 
-  const qbXML = `
-    <?xml version="1.0" ?>
-    <?qbxml version="13.0" ?>
-    <QBXML>
-      <QBXMLMsgsRq>
-        <GeneralSummaryReportQueryRq requestID="1">
-          <GeneralSummaryReportType>BalanceSheet</GeneralSummaryReportType>
-        </GeneralSummaryReportQueryRq>
-      </QBXMLMsgsRq>
-    </QBXML>
-  `;
-
-  // Normally, you'd send this request to QuickBooks
-  console.log("Sending scheduled report request to QuickBooks.");
+  const latestData = await fetchLatestData(); // Fetch the latest data
+  if (latestData) {
+    console.log("Latest data from the database:", latestData);
+  } else {
+    console.error("Could not fetch the latest data from the database.");
+  }
 });
 
 // Start the Express server within the Electron application
 expressApp.listen(port, () => {
   console.log(`Express server running on port ${port}`);
-});
 });
