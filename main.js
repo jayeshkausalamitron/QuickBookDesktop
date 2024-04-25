@@ -5,6 +5,8 @@ const bodyParser = require('body-parser');
 const xml2js = require('xml2js');
 const schedule = require('node-schedule'); // Importing node-schedule
 const mysql = require('mysql2/promise'); // For MySQL connections
+const fs = require('fs');
+const XLSX = require('xlsx');
 
 let mainWindow;
 
@@ -56,6 +58,27 @@ async function fetchLatestData() {
     return null;
   }
 }
+
+// Function to read an Excel sheet
+function readExcelData(filePath) {
+    const workbook = XLSX.readFile(filePath);
+    const sheetName = workbook.SheetNames[0]; // Get the first sheet
+    const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    return sheet; // Return data as an array of objects
+  }
+
+  // Function to fetch data from the MySQL database
+async function fetchDataFromDatabase(query, dbConfig) {
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+      const [rows] = await connection.execute(query); // Execute SQL query
+      await connection.end(); // Close connection
+      return rows; // Return data
+    } catch (error) {
+      console.error('Error fetching data from MySQL:', error);
+      throw error; // Re-throw error if needed
+    }
+  }
 
 // Define the endpoint for QuickBooks Web Connector
 expressApp.post('/quickbooks', (req, res) => {
@@ -111,3 +134,11 @@ schedule.scheduleJob('0 8 * * *', async () => { // This example runs every day a
 expressApp.listen(port, () => {
   console.log(`Express server running on port ${port}`);
 });
+
+const excelFilePath = 'path/to/excel-file.xlsx'; // Path to your Excel file
+  const query = 'SELECT * FROM your_table_name'; // SQL query to fetch data from MySQL
+
+  const areSame = await compareExcelWithDatabase(excelFilePath, query, dbConfig); // Compare data
+
+  console.log('Data match:', areSame); // Output whether the data matches or not
+})();
