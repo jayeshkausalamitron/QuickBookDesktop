@@ -1,5 +1,5 @@
 {
-  "name": "desktop",
+  "name": "kips",
   "version": "1.0.0",
   "description": "",
   "main": "main.js",
@@ -9,11 +9,15 @@
   },
   "author": "",
   "license": "ISC",
+  "devDependencies": {
+    "electron": "^30.0.0"
+  },
   "dependencies": {
-    "axios": "^1.6.8",
     "dotenv": "^16.4.5",
-    "electron": "^30.0.1",
-    "qs": "^6.12.1",
-    "xlsx": "^0.18.5"
+    "express": "^4.19.2",
+    "mysql2-promise": "^0.1.4",
+    "node-schedule": "^2.1.1",
+    "xlsx": "^0.18.5",
+    "xml2js": "^0.6.2"
   }
 }

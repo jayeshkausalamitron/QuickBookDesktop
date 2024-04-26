@@ -4,7 +4,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const xml2js = require('xml2js');
 const schedule = require('node-schedule'); // Importing node-schedule
-const mysql = require('mysql2/promise'); // For MySQL connections
+const mysql = require('mysql2-promise'); // For MySQL connections
 const fs = require('fs');
 const XLSX = require('xlsx');
 
@@ -138,7 +138,20 @@ expressApp.listen(port, () => {
 const excelFilePath = 'path/to/excel-file.xlsx'; // Path to your Excel file
   const query = 'SELECT * FROM your_table_name'; // SQL query to fetch data from MySQL
 
-  const areSame = await compareExcelWithDatabase(excelFilePath, query, dbConfig); // Compare data
+  const areSame =  compareExcelWithDatabase(excelFilePath, query, dbConfig); // Compare data
 
   console.log('Data match:', areSame); // Output whether the data matches or not
 })();
+
+// Function to compare data from Excel and MySQL
+async function compareExcelWithDatabase(excelFilePath, query, dbConfig) {
+    const excelData = readExcelData(excelFilePath); // Read data from Excel
+    const dbData = await fetchDataFromDatabase(query, dbConfig); // Fetch data from MySQL
+  
+    // Here, you might need to define how to compare the two datasets
+    // For simplicity, let's compare the JSON representation
+    const excelJSON = JSON.stringify(excelData);
+    const dbJSON = JSON.stringify(dbData);
+  
+    return excelJSON === dbJSON; // Return true if data matches, false otherwise
+  }
